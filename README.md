@@ -1,6 +1,6 @@
 # AI Release Planning Agent 🚀
 
-A smart tool for release planning that calculates:
+An AI-driven release planning tool that aligns development capacity with feature effort and enables data-driven delivery decisions.
 
 - Developer capacity
 - QA capacity
@@ -8,8 +8,10 @@ A smart tool for release planning that calculates:
 - Recommendations for meeting deadlines
 
 ## Live Demo
-[Click here to try the live app](https://ai-release-planning-agent-z2uvt4vxvytfu5auxt5alp.streamlit.app/)
+[Try the Live App](https://ai-release-planning-agent-z2uvt4vxvytfu5auxt5alp.streamlit.app/)
 
+## Preview
+![App Screenshot](<img width="943" height="858" alt="image" src="https://github.com/user-attachments/assets/5687f37c-3c41-4bc5-912f-50d24ec8dc88" />)
 
 ## Features
 - Capacity calculation (developers & QA)
