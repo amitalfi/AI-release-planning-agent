@@ -7,6 +7,10 @@ A smart tool for release planning that calculates:
 - Effort vs availability gap
 - Recommendations for meeting deadlines
 
+## Live Demo
+[Click here to try the live app](https://ai-release-planning-agent-z2uvt4vxvytfu5auxt5alp.streamlit.app/)
+
+
 ## Features
 - Capacity calculation (developers & QA)
 - Gap analysis (under / over capacity)
