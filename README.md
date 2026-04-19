@@ -11,7 +11,7 @@ An AI-driven release planning tool that aligns development capacity with feature
 [Try the Live App](https://ai-release-planning-agent-z2uvt4vxvytfu5auxt5alp.streamlit.app/)
 
 ## Preview
-![App Screenshot](screenshot.png)
+![App Screenshot](screenshot)
 
 ## Features
 - Capacity calculation (developers & QA)
@@ -24,3 +24,8 @@ An AI-driven release planning tool that aligns development capacity with feature
 ```bash
 pip install -r requirements.txt
 streamlit run app.py
+
+## Tech Stack
+- Python
+- Streamlit
+- Data analysis & modeling
