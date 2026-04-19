@@ -11,7 +11,7 @@ An AI-driven release planning tool that aligns development capacity with feature
 [Try the Live App](https://ai-release-planning-agent-z2uvt4vxvytfu5auxt5alp.streamlit.app/)
 
 ## Preview
-![App Screenshot](<img width="943" height="858" alt="image" src="https://github.com/user-attachments/assets/5687f37c-3c41-4bc5-912f-50d24ec8dc88" />)
+![App Screenshot](screenshot.png)
 
 ## Features
 - Capacity calculation (developers & QA)
