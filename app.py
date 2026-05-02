@@ -2,18 +2,64 @@ import streamlit as st
 import holidays
 import calendar
 import pandas as pd
+import plotly.express as px
 from datetime import date, timedelta
 
 st.set_page_config(page_title="AI Release Planning Agent", page_icon="🚀", layout="centered")
 
 st.title("AI Release Planning Agent 🚀")
+st.markdown("""
+### Smart Release Planning for Real Product Teams
+
+This AI agent was built to solve a common challenge in product and R&D organizations:
+
+**How do we know if our team can realistically deliver the planned scope on time?**
+
+Many projects begin with deadlines and feature requests — but without a clear view of real team capacity, available resources, QA constraints, vacations, or execution focus.
+
+This tool helps teams make smarter delivery decisions by comparing:
+
+- Total available team capacity  
+- Number of developers and testers assigned to the full project  
+- Feature effort and complexity  
+- Timeline constraints  
+- Scope feasibility  
+- Delivery gaps or surplus capacity  
+""")
 
 # ===== Inputs =====
-developers = st.number_input("Number of Developers", value=1, min_value=1)
-testers = st.number_input("Number of QA / Testers", value=1, min_value=0)
-start_date = st.date_input("Project Start Date", value=date.today())
+st.subheader("Project Team Allocation")
+st.caption(
+    "Define the total team resources available for the entire project. "
+    "These are the developers and QA testers allocated to support the full release scope, not a specific feature."
+)
 
+developers = st.number_input(
+    "Total Developers Allocated to the Project",
+    value=1,
+    min_value=1,
+    help="The total number of developers available for the whole project."
+)
+
+testers = st.number_input(
+    "Total QA Testers Allocated to the Project",
+    value=1,
+    min_value=0,
+    help="The total number of QA testers available for the whole project."
+)
+
+start_date = st.date_input(
+    "Project Start Date",
+    value=date.today(),
+    help="The planned start date of the project timeline."
+)
+# ===== Timeline =====
 st.subheader("Timeline")
+st.caption(
+    "Define the available project timeline. This is the time the team has to complete the project. "
+    "The agent uses this period to calculate real working capacity after weekends, Israeli holidays, vacation days, and focus factor."
+)
+
 col1, col2 = st.columns(2)
 
 with col1:
@@ -90,7 +136,6 @@ def calculate_team_capacity(headcount, start_date, months, extra_days, vacation_
 
 
 def format_gap_status(days_value):
-    """Return readable shortage/surplus text for days."""
     if days_value >= 0:
         return f"{abs(days_value):.1f} days surplus"
     return f"{abs(days_value):.1f} days shortage"
@@ -121,8 +166,12 @@ if st.button("Calculate Capacity"):
     st.write(f"Total QA Capacity: {qa_capacity:.2f} man-months")
 
 
-# ===== Features & Streams =====
+# ===== Project Scope =====
 st.header("Project Scope")
+st.caption(
+    "Define the project scope by adding features, streams, business value, and estimated effort. "
+    "The agent uses this information to prioritize work, compare scope against capacity, and identify delivery risks."
+)
 
 num_features = st.number_input("Number of Features", min_value=1, value=3, step=1)
 
@@ -145,7 +194,7 @@ for i in range(int(num_features)):
         max_value=10,
         value=5,
         key=f"business_value_{i}",
-        help="Rate the business importance of this feature from 1 (low) to 10 (high)."
+        help="Rate the business importance of this feature from 1 low to 10 high."
     )
 
     num_streams = st.number_input(
@@ -170,6 +219,7 @@ for i in range(int(num_features)):
         st.markdown(f"#### 🔹 {stream_name}")
 
         col1, col2 = st.columns(2)
+
         with col1:
             developers_needed = st.number_input(
                 f"Developers Needed - {stream_name}",
@@ -178,6 +228,7 @@ for i in range(int(num_features)):
                 step=1,
                 key=f"dev_needed_{i}_{j}"
             )
+
         with col2:
             testers_needed = st.number_input(
                 f"QA Needed - {stream_name}",
@@ -188,6 +239,7 @@ for i in range(int(num_features)):
             )
 
         col3, col4 = st.columns(2)
+
         with col3:
             dev_days = st.number_input(
                 f"Development Days - {stream_name}",
@@ -196,6 +248,7 @@ for i in range(int(num_features)):
                 step=1.0,
                 key=f"dev_days_{i}_{j}"
             )
+
         with col4:
             qa_days = st.number_input(
                 f"QA Days - {stream_name}",
@@ -281,6 +334,75 @@ if st.button("Analyze Project Capacity"):
 
     st.header("Capacity Analysis")
 
+    # ===== Dashboard =====
+    st.subheader("Executive Dashboard")
+    st.caption("A quick visual overview of available capacity, required effort, and delivery gaps.")
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        st.metric(
+            "Developer Gap",
+            f"{dev_gap_days:.1f} days",
+            "Surplus" if dev_gap >= 0 else "Shortage"
+        )
+
+    with col2:
+        st.metric(
+            "QA Gap",
+            f"{qa_gap_days:.1f} days",
+            "Surplus" if qa_gap >= 0 else "Shortage"
+        )
+
+    with col3:
+        st.metric(
+            "Dev Capacity",
+            f"{dev_capacity:.2f}",
+            "man-months"
+        )
+
+    with col4:
+        st.metric(
+            "QA Capacity",
+            f"{qa_capacity:.2f}",
+            "man-months"
+        )
+
+    capacity_df = pd.DataFrame({
+        "Team": ["Developers", "Developers", "QA", "QA"],
+        "Type": ["Available Capacity", "Required Effort", "Available Capacity", "Required Effort"],
+        "Man-Months": [dev_capacity, total_dev_effort_months, qa_capacity, total_qa_effort_months]
+    })
+
+    fig_capacity = px.bar(
+        capacity_df,
+        x="Team",
+        y="Man-Months",
+        color="Type",
+        barmode="group",
+        title="Capacity vs Required Effort"
+    )
+
+    st.plotly_chart(fig_capacity, use_container_width=True)
+
+    gap_df = pd.DataFrame({
+        "Team": ["Developers", "QA"],
+        "Gap Days": [
+            dev_gap * days_per_month,
+            qa_gap * days_per_month
+        ]
+    })
+
+    fig_gap = px.bar(
+        gap_df,
+        x="Team",
+        y="Gap Days",
+        title="Capacity Gap in Working Days"
+    )
+
+    st.plotly_chart(fig_gap, use_container_width=True)
+
+    # ===== Developers Analysis =====
     st.subheader("Developers")
     st.write(f"Available Developer Capacity: {dev_capacity:.2f} man-months")
     st.write(f"Required Development Effort: {total_dev_effort_months:.2f} man-months")
@@ -291,6 +413,7 @@ if st.button("Analyze Project Capacity"):
     else:
         st.error(f"Developer Capacity Status: Under Capacity by {dev_gap_days:.1f} working days")
 
+    # ===== QA Analysis =====
     st.subheader("QA / Testers")
     st.write(f"Available QA Capacity: {qa_capacity:.2f} man-months")
     st.write(f"Required QA Effort: {total_qa_effort_months:.2f} man-months")
@@ -348,9 +471,146 @@ if st.button("Analyze Project Capacity"):
     df = pd.DataFrame(table_data)
     st.dataframe(df, use_container_width=True)
 
-    if not df.empty:
-        st.success(f"Top Priority Feature: {df.iloc[0]['Feature']}")
+        # ===== Professional Burn-down + Timeline Dashboard =====
+    # ===== Professional Burn-down + Timeline Dashboard =====
+    st.subheader("Sprint-style Burn-down & Task Timeline")
+    st.caption(
+        "This section shows remaining work over time, ideal burn-down line, progress percentage, and task timeline."
+    )
 
+    tasks = []
+
+    for feature in sorted_features:
+        for stream in feature["streams"]:
+            task_effort = stream["stream_dev_effort"] + stream["stream_qa_effort"]
+
+            tasks.append({
+                "Feature": feature["feature_name"],
+                "Task": stream["stream_name"],
+                "Effort Days": task_effort,
+                "Priority Score": feature["priority_score"]
+            })
+
+    tasks_df = pd.DataFrame(tasks)
+
+    if not tasks_df.empty:
+        tasks_df = tasks_df.sort_values(
+            by=["Priority Score", "Effort Days"],
+            ascending=[False, True]
+        ).reset_index(drop=True)
+
+        total_capacity_per_day = max((developers + testers) * focus_factor, 1)
+        total_work = tasks_df["Effort Days"].sum()
+
+        current_day = 0
+        remaining_work = total_work
+        completed_work = 0
+
+        burn_rows = [{
+            "Day": 0,
+            "Remaining Work": total_work,
+            "Ideal Remaining Work": total_work,
+            "Completed Work": 0,
+            "Progress %": 0,
+            "Completed Task": "Project Start",
+            "Feature": "Start"
+        }]
+
+        timeline_rows = []
+        task_start = 0
+
+        for _, task in tasks_df.iterrows():
+            task_duration = task["Effort Days"] / total_capacity_per_day
+            task_end = task_start + task_duration
+
+            current_day = task_end
+            completed_work += task["Effort Days"]
+            remaining_work = max(total_work - completed_work, 0)
+
+            progress_pct = (completed_work / total_work) * 100 if total_work > 0 else 0
+
+            timeline_rows.append({
+                "Feature": task["Feature"],
+                "Task": task["Task"],
+                "Start Day": round(task_start, 1),
+                "End Day": round(task_end, 1),
+                "Effort Days": round(task["Effort Days"], 1),
+                "Progress %": round(progress_pct, 1)
+            })
+
+            burn_rows.append({
+                "Day": round(current_day, 1),
+                "Remaining Work": round(remaining_work, 1),
+                "Ideal Remaining Work": None,
+                "Completed Work": round(completed_work, 1),
+                "Progress %": round(progress_pct, 1),
+                "Completed Task": task["Task"],
+                "Feature": task["Feature"]
+            })
+
+            task_start = task_end
+
+        burn_df = pd.DataFrame(burn_rows)
+        timeline_df = pd.DataFrame(timeline_rows)
+
+        total_duration = burn_df["Day"].max()
+
+        burn_df["Ideal Remaining Work"] = burn_df["Day"].apply(
+            lambda day: max(total_work - (total_work / total_duration) * day, 0)
+            if total_duration > 0 else total_work
+        )
+
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            st.metric("Total Planned Work", f"{total_work:.1f} days")
+
+        with col2:
+            st.metric("Estimated Duration", f"{total_duration:.1f} days")
+
+        with col3:
+            st.metric("Planned Progress", "100%")
+
+        burn_long_df = burn_df.melt(
+            id_vars=["Day", "Completed Task", "Feature", "Progress %"],
+            value_vars=["Remaining Work", "Ideal Remaining Work"],
+            var_name="Line Type",
+            value_name="Work Days"
+        )
+
+        fig_burn = px.line(
+            burn_long_df,
+            x="Day",
+            y="Work Days",
+            color="Line Type",
+            markers=True,
+            title="Professional Burn-down Chart: Planned vs Ideal",
+            hover_data=["Feature", "Completed Task", "Progress %"]
+        )
+
+        st.plotly_chart(fig_burn, use_container_width=True)
+
+        fig_timeline = px.bar(
+            timeline_df,
+            x="Effort Days",
+            y="Task",
+            color="Feature",
+            orientation="h",
+            title="Task Timeline by Feature",
+            hover_data=["Feature", "Start Day", "End Day", "Progress %"]
+        )
+
+        fig_timeline.update_yaxes(autorange="reversed")
+        st.plotly_chart(fig_timeline, use_container_width=True)
+
+        st.markdown("### Planned Task Completion Order")
+        st.dataframe(
+            timeline_df[["Feature", "Task", "Start Day", "End Day", "Effort Days", "Progress %"]],
+            use_container_width=True
+        )
+
+    else:
+        st.info("No tasks available for burn-down visualization.")
     # ===== Scope Adjustment Preview =====
     if dev_gap < 0 or qa_gap < 0:
         st.subheader("Recommended Scope Adjustment")
@@ -508,7 +768,6 @@ if st.button("Analyze Project Capacity"):
         st.write("- Reduce QA scope carefully by focusing on critical user journeys and high-risk validations.")
         st.write("- Consider adding temporary resources or extending the timeline if scope cannot move.")
 
-        # ===== Impact of Removing Individual Features =====
         st.subheader("Impact of Removing Individual Features")
 
         individual_impact_rows = []
@@ -517,7 +776,6 @@ if st.button("Analyze Project Capacity"):
             dev_days_saved = feature["feature_dev_effort_days"]
             qa_days_saved = feature["feature_qa_effort_days"]
 
-            # Negative gap means shortage, so adding saved days reduces shortage
             new_dev_balance = dev_days_saved - dev_shortage_days
             new_qa_balance = qa_days_saved - qa_shortage_days
 
@@ -531,6 +789,11 @@ if st.button("Analyze Project Capacity"):
                 "QA After Removal": format_gap_status(new_qa_balance)
             })
 
+        impact_df = pd.DataFrame(individual_impact_rows)
+        st.dataframe(impact_df, use_container_width=True)
+
+        st.write("This table shows exactly how much shortage or surplus would remain after removing each feature individually.")
+        
         impact_df = pd.DataFrame(individual_impact_rows)
         st.dataframe(impact_df, use_container_width=True)
 
